@@ -30,14 +30,14 @@ var projMatrix = new Matrix4();
 var g_last = Date.now();
 
 function main() {
-	view = new CameraController([155, 0, 40], [0, 0, 0], .5, .1);
+	view = new CameraController([200, 0, 40], [45, 0, 0], .5, .1);
 
 	canvas = document.getElementById("canvas");
 	canvas.width = innerWidth;
 	canvas.height = innerHeight;
 
 	setup_gl();
-	vis = new Vis(p_fpv, 75, 75, 1.5);
+	vis = new Vis(p_fpv, 45, 70, 4);
 	vis.init_buffers();
 
 	projMatrix.setPerspective(fovy, canvas.width / canvas.height, 1, 500);
@@ -76,8 +76,8 @@ function setup_gl(){
 	gl.enable(gl.BLEND);
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 	gl.disable(gl.DEPTH_TEST);
-	gl.clearColor(0,0,0,0);
-	gl.lineWidth(1.5);
+	gl.clearColor(0,0,.15,0);
+	gl.lineWidth(2);
 
 	initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
 

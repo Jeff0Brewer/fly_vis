@@ -1,14 +1,19 @@
 class Vis{
 	constructor(p_fpv, width, height, scale){
 		this.speed = -300;
-		this.roughness = .075;
-		this.depth = 60;
+		this.roughness = .04;
+		this.depth = 75;
 		this.x = 0;
 		this.curr_hit = 0;
 		this.last_hit = 0;
 		this.spray = 0;
 		this.spray_duration = .9;
-		this.spray_dir = [[-1.2, -.8], [.8, 1.2], [-1.2, -.8]];
+		let spray_sz = 3.5;
+		let op = .8;
+		this.spray_dir = [[-.95*spray_sz, -.32*spray_sz], [.32*spray_sz, .95*spray_sz], [-.95*spray_sz, -.32*spray_sz]];
+		this.spray_col = [[1.0, 0.0, 0.0, op], [1.0, 0.0, 0.0, op],
+		 									[0.0, 1.0, 0.0, op], [0.0, 1.0, 0.0, op],
+											[0.0, 0.0, 1.0, op], [0.0, 0.0, 1.0, op]];
 
 		this.max_y = height*scale;
 		this.scale = scale;
@@ -72,30 +77,24 @@ class Vis{
 		gl.vertexAttribPointer(this.a_Position, this.p_fpv, gl.FLOAT, false, this.fsize * this.p_fpv, 0);
 
 		//drawing
-		pushMatrix(modelMatrix);
 
-		modelMatrix.translate(1/3*this.spray*spray_dir[0], 1/3*this.spray*spray_dir[1], 1/3*this.spray*spray_dir[2]);
-		gl.uniform4fv(this.u_Color, [1.0, 0.0, 0.0, 1.0]);
-		gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-		gl.drawArrays(gl.LINES, 0, this.pos_buffer.length / this.p_fpv);
+		let spray_step = 1/this.spray_col.length;
+		let curr_spray = spray_step;
 
-		modelMatrix = popMatrix();
-		pushMatrix(modelMatrix);
+		gl.lineWidth(3);
 
-		modelMatrix.translate(2/3*this.spray*spray_dir[0], 2/3*this.spray*spray_dir[1], 2/3*this.spray*spray_dir[2]);
-		gl.uniform4fv(this.u_Color, [0.0, 1.0, 0.0, 1.0]);
-		gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-		gl.drawArrays(gl.LINES, 0, this.pos_buffer.length / this.p_fpv);
+		for(let i = 0; i < this.spray_col.length; i++, curr_spray += spray_step){
+				pushMatrix(modelMatrix);
 
-		pushMatrix(modelMatrix);
-		modelMatrix = popMatrix();
+				modelMatrix.translate(curr_spray*this.spray*spray_dir[0], curr_spray*this.spray*spray_dir[1], curr_spray*this.spray*spray_dir[2]);
+				gl.uniform4fv(this.u_Color, this.spray_col[i]);
+				gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+				gl.drawArrays(gl.LINES, 0, this.pos_buffer.length / this.p_fpv);
 
-		modelMatrix.translate(this.spray*spray_dir[0], this.spray*spray_dir[1], this.spray*spray_dir[2]);
-		gl.uniform4fv(this.u_Color, [0.0, 0.0, 1.0, 1.0]);
-		gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-		gl.drawArrays(gl.LINES, 0, this.pos_buffer.length / this.p_fpv);
+				modelMatrix = popMatrix();
+		}
 
-		modelMatrix = popMatrix();
+		gl.lineWidth(2);
 
 		gl.uniform4fv(this.u_Color, [1.0, 1.0, 1.0, 1.0]);
 		gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
@@ -109,16 +108,13 @@ class Vis{
 		let smoothed = smooth(fData, .2, 7);
 		let depth = [];
 		for(let y = 0; y <= this.max_y; y += this.scale){
-			depth.push(pow_map(smoothed[Math.floor(map(y, 0, this.max_y, Math.floor(fData.length*.16), fData.length*.75))], 0, 255, 0, this.depth, 3));
+			depth.push(pow_map(smoothed[Math.floor(map(y, 0, this.max_y, Math.floor(fData.length*.10), fData.length*.75))], 0, 255, 0, this.depth, 3));
 		}
 
 
 		this.x += (elapsed/1000)*speed*this.roughness;
-		gl.uniform4fv(this.u_Color, [1.0, 1.0, 1.0, 1.0]);
-		gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-		gl.drawArrays(gl.LINES, 0, this.pos_buffer.length / this.p_fpv);
 		for(let i = 0; i < this.pos_buffer.length; i += this.p_fpv){
-			this.pos_buffer[i + 2] = depth[Math.abs(this.pos_buffer[i + 1])/this.scale]*noise.perlin3(this.roughness*this.pos_buffer[i] + this.x - (this.x % (this.scale*this.roughness)), this.roughness*this.pos_buffer[i + 1], 0);
+			this.pos_buffer[i + 2] = depth[Math.abs(this.pos_buffer[i + 1])/this.scale]*signed_pow(noise.perlin3(this.roughness*this.pos_buffer[i] + this.x - (this.x % (this.scale*this.roughness)), this.roughness*this.pos_buffer[i + 1], 0), 1.5);
 		}
 	}
 
